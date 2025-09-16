@@ -46,9 +46,9 @@ Implementation of three CNN variants for MNIST digit classification, comparing t
 
 | Model | Final Accuracy | Epochs to 99%+ | Convergence Rate |
 |-------|----------------|----------------|------------------|
-| **v1** | 99.36% | 8 | 0.75% per epoch |
-| **v2** | 99.38% | 6 | 1.0% per epoch |
-| **Final** | 99.55% | 4 | 1.5% per epoch |
+| **<span style="color:red">Final</span>** | **<span style="color:red">99.55%</span>** | **<span style="color:red">5</span>** | **<span style="color:red">1.2% per epoch</span>** |
+| **v2** | 99.38% | 8 | 0.9% per epoch |
+| **v1** | 99.36% | 8 | 0.9% per epoch |
 
 ### Convergence Analysis
 
@@ -56,28 +56,26 @@ Implementation of three CNN variants for MNIST digit classification, comparing t
 - **Dropout**: All 4 blocks (rate=0.1)
 - **Epoch 1**: Train=70.51%, Test=93.59%
 - **Epoch 8**: First 99%+ (99.13%)
-- **Issue**: Dropout in final layers discards learned high-level features
-- **Result**: Delayed convergence, 2.4% accuracy gap
+- **Final**: 99.36% (Epoch 20)
 
 #### Model v2: Reduced Dropout
 - **Dropout**: Blocks 1-2 only
 - **Epoch 1**: Train=77.69%, Test=96.68%
-- **Epoch 6**: First 99%+ (99.20%)
-- **Improvement**: 2 epochs faster than v1
-- **Result**: Better feature preservation in later layers
+- **Epoch 8**: First 99%+ (99.20%)
+- **Final**: 99.38% (Epoch 20)
 
 #### Model Final: Batch Normalization
 - **BN**: All conv layers (momentum=0.1)
 - **Dropout**: Blocks 1-2 only
 - **Epoch 1**: Train=90.31%, Test=98.76%
-- **Epoch 4**: First 99%+ (99.18%)
-- **Result**: 4x faster convergence, highest accuracy
+- **Epoch 5**: First 99%+ (99.18%)
+- **Final**: 99.55% (Epoch 20)
 
 ## Technical Analysis
 
 ### Key Findings
-1. **Dropout Impact**: Final layer dropout reduces convergence speed by 2-4 epochs
-2. **Batch Normalization**: Provides 4x faster convergence and 0.17% accuracy improvement
+1. **Dropout Impact**: Final layer dropout reduces convergence speed by 3 epochs
+2. **Batch Normalization**: Provides 3 epochs faster convergence and 0.17% accuracy improvement
 3. **Feature Preservation**: Removing dropout from high-level layers improves learning efficiency
 
 ### Implementation Details
