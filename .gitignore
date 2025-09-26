@@ -135,6 +135,12 @@ assignment-5/*.png
 assignment-5/combined_metrics*.png
 assignment-5/learning_rate_schedule*.png
 
+assignment6/checkpoints/
+assignment6/data/
+assignment6/test/
+assignment6/*.png
+assignment6/*.json
+
 # uv specific
 .venv/
 uv.lock
