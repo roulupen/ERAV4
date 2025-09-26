@@ -438,47 +438,158 @@ Epoch 15/15 | Train: 0.0139 (99.60%) | Test: 0.0269 (99.24%) | LR: 0.000000 | Ti
 **Command To Run the Model**: `python train.py --model gap --epochs 15 --batch_size 64 --scheduler cyclic  --dropout_prob 0.015`
 
 ```
+(era_v4) roul@Upendras-MacBook-Pro assignment6 % python train.py --model gap --epochs 15 --batch_size 64 --scheduler cyclic  --dropout_prob 0.015       
+🎯 MNIST Classification Training Pipeline
+============================================================
+📋 Configuration:
+  Model: gap
+  Batch Size: 64
+  Epochs: 15
+  Learning Rate: 0.001
+  Optimizer: ADAMW
+  Scheduler: cyclic
+  Dropout: 0.015
+  Weight Decay: 0.001
+  Cutout: ❌
+  Random Seed: 42
+============================================================
+🌱 Random seed set to 42
+✅ Using Apple Silicon GPU (Metal Performance Shaders)
+🖥️  Using device: mps
+
+📥 Loading MNIST dataset...
+  Batch size: 64
+  Workers: 4
+  Data directory: ./data
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 9.91M/9.91M [00:03<00:00, 3.21MB/s]
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 28.9k/28.9k [00:00<00:00, 80.1kB/s]
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1.65M/1.65M [00:06<00:00, 255kB/s]
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4.54k/4.54k [00:00<00:00, 1.41MB/s]
+📊 Data loaded successfully:
+  Training samples: 60,000
+  Test samples: 10,000
+  Batch size: 64
+  Training batches: 938
+  Test batches: 157
+
+🏗️ Setting up gap model...
+  Total parameters: 7,954
+  Under 8k limit: ✅
+  Parameter efficiency: 99.4% of limit
+
+📊 Model Architecture:
+----------------------------------------------------------------
+        Layer (type)               Output Shape         Param #
+================================================================
+            Conv2d-1            [-1, 8, 28, 28]              80
+       BatchNorm2d-2            [-1, 8, 28, 28]              16
+              ReLU-3            [-1, 8, 28, 28]               0
+           Dropout-4            [-1, 8, 28, 28]               0
+            Conv2d-5           [-1, 16, 28, 28]           1,168
+       BatchNorm2d-6           [-1, 16, 28, 28]              32
+              ReLU-7           [-1, 16, 28, 28]               0
+           Dropout-8           [-1, 16, 28, 28]               0
+            Conv2d-9            [-1, 8, 28, 28]             136
+      BatchNorm2d-10            [-1, 8, 28, 28]              16
+             ReLU-11            [-1, 8, 28, 28]               0
+        MaxPool2d-12            [-1, 8, 14, 14]               0
+           Conv2d-13           [-1, 12, 14, 14]             876
+      BatchNorm2d-14           [-1, 12, 14, 14]              24
+             ReLU-15           [-1, 12, 14, 14]               0
+          Dropout-16           [-1, 12, 14, 14]               0
+           Conv2d-17           [-1, 16, 14, 14]           1,744
+      BatchNorm2d-18           [-1, 16, 14, 14]              32
+             ReLU-19           [-1, 16, 14, 14]               0
+          Dropout-20           [-1, 16, 14, 14]               0
+           Conv2d-21            [-1, 6, 14, 14]             102
+      BatchNorm2d-22            [-1, 6, 14, 14]              12
+             ReLU-23            [-1, 6, 14, 14]               0
+        MaxPool2d-24              [-1, 6, 7, 7]               0
+           Conv2d-25             [-1, 12, 7, 7]             660
+      BatchNorm2d-26             [-1, 12, 7, 7]              24
+             ReLU-27             [-1, 12, 7, 7]               0
+           Conv2d-28             [-1, 12, 7, 7]           1,308
+      BatchNorm2d-29             [-1, 12, 7, 7]              24
+             ReLU-30             [-1, 12, 7, 7]               0
+           Conv2d-31              [-1, 6, 7, 7]              78
+      BatchNorm2d-32              [-1, 6, 7, 7]              12
+             ReLU-33              [-1, 6, 7, 7]               0
+        MaxPool2d-34              [-1, 6, 3, 3]               0
+           Conv2d-35             [-1, 10, 3, 3]             550
+      BatchNorm2d-36             [-1, 10, 3, 3]              20
+             ReLU-37             [-1, 10, 3, 3]               0
+           Conv2d-38             [-1, 10, 3, 3]             910
+      BatchNorm2d-39             [-1, 10, 3, 3]              20
+             ReLU-40             [-1, 10, 3, 3]               0
+AdaptiveAvgPool2d-41             [-1, 10, 1, 1]               0
+          Flatten-42                   [-1, 10]               0
+           Linear-43                   [-1, 10]             110
+================================================================
+Total params: 7,954
+Trainable params: 7,954
+Non-trainable params: 0
+----------------------------------------------------------------
+Input size (MB): 0.00
+Forward/backward pass size (MB): 0.96
+Params size (MB): 0.03
+Estimated Total Size (MB): 1.00
+----------------------------------------------------------------
+
+⚙️  Setting up ADAMW optimizer and cyclic scheduler...
+  Loss function: NLLLoss
+
 🚀 Starting training for 15 epochs...
-⏰ Training started at: 2025-09-26 17:25:59
-Epoch  1/15 | Train: 1.5838 (53.52%) | Test: 0.5048 (93.50%) | LR: 0.000708 | Time: 10.8s                                                                                                     
+⏰ Training started at: 2025-09-26 22:43:11
+📁 Training Setup Complete:
+  Epochs: 15
+  Early stopping patience: 8
+  Checkpoint directory: ./checkpoints
+  Best model path: ./checkpoints/best_mnist_model.pth
+  Latest checkpoint: ./checkpoints/latest_checkpoint.pth
+
+🚀 Starting training for 15 epochs...
+⏰ Training started at: 2025-09-26 22:43:11
+Epoch  1/15 | Train: 1.5838 (53.52%) | Test: 0.5048 (93.50%) | LR: 0.000708 | Time: 10.3s                                                                                                     
   🏆 New best model saved! (Test Acc: 93.50%)
-Epoch  2/15 | Train: 0.3352 (92.02%) | Test: 0.0927 (97.53%) | LR: 0.001460 | Time: 10.2s                                                                                                     
+Epoch  2/15 | Train: 0.3352 (92.02%) | Test: 0.0927 (97.53%) | LR: 0.001460 | Time: 10.3s                                                                                                     
   🏆 New best model saved! (Test Acc: 97.53%)
-Epoch  3/15 | Train: 0.1654 (95.16%) | Test: 0.0697 (97.98%) | LR: 0.001487 | Time: 10.2s                                                                                                     
+Epoch  3/15 | Train: 0.1654 (95.16%) | Test: 0.0697 (97.98%) | LR: 0.001487 | Time: 10.1s                                                                                                     
   🏆 New best model saved! (Test Acc: 97.98%)
-Epoch  4/15 | Train: 0.1319 (95.94%) | Test: 0.0439 (98.62%) | LR: 0.001431 | Time: 10.1s                                                                                                     
+Epoch  4/15 | Train: 0.1319 (95.94%) | Test: 0.0439 (98.62%) | LR: 0.001431 | Time: 10.3s                                                                                                     
   🏆 New best model saved! (Test Acc: 98.62%)
-Epoch  5/15 | Train: 0.1149 (96.42%) | Test: 0.0555 (98.22%) | LR: 0.001334 | Time: 10.1s                                                                                                     
+Epoch  5/15 | Train: 0.1149 (96.42%) | Test: 0.0555 (98.22%) | LR: 0.001334 | Time: 10.3s                                                                                                     
   ⏳ No improvement (1/8)
-Epoch  6/15 | Train: 0.1041 (96.80%) | Test: 0.0345 (98.87%) | LR: 0.001202 | Time: 10.2s                                                                                                     
+Epoch  6/15 | Train: 0.1041 (96.80%) | Test: 0.0345 (98.87%) | LR: 0.001202 | Time: 10.3s                                                                                                     
   🏆 New best model saved! (Test Acc: 98.87%)
-Epoch  7/15 | Train: 0.0957 (97.03%) | Test: 0.0318 (98.95%) | LR: 0.001042 | Time: 10.2s                                                                                                     
+Epoch  7/15 | Train: 0.0957 (97.03%) | Test: 0.0318 (98.95%) | LR: 0.001042 | Time: 10.7s                                                                                                     
   🏆 New best model saved! (Test Acc: 98.95%)
-Epoch  8/15 | Train: 0.0902 (97.28%) | Test: 0.0297 (99.05%) | LR: 0.000865 | Time: 10.1s                                                                                                     
+Epoch  8/15 | Train: 0.0902 (97.28%) | Test: 0.0297 (99.05%) | LR: 0.000865 | Time: 10.3s                                                                                                     
   🏆 New best model saved! (Test Acc: 99.05%)
-Epoch  9/15 | Train: 0.0800 (97.56%) | Test: 0.0235 (99.33%) | LR: 0.000681 | Time: 10.1s                                                                                                     
+Epoch  9/15 | Train: 0.0800 (97.56%) | Test: 0.0235 (99.33%) | LR: 0.000681 | Time: 10.4s                                                                                                     
   🏆 New best model saved! (Test Acc: 99.33%)
-Epoch 10/15 | Train: 0.0749 (97.61%) | Test: 0.0215 (99.31%) | LR: 0.000501 | Time: 10.2s                                                                                                     
+Epoch 10/15 | Train: 0.0749 (97.61%) | Test: 0.0215 (99.31%) | LR: 0.000501 | Time: 10.5s                                                                                                     
   ⏳ No improvement (1/8)
-Epoch 11/15 | Train: 0.0733 (97.72%) | Test: 0.0211 (99.37%) | LR: 0.000336 | Time: 10.1s                                                                                                     
+Epoch 11/15 | Train: 0.0733 (97.72%) | Test: 0.0211 (99.37%) | LR: 0.000336 | Time: 10.2s                                                                                                     
   🏆 New best model saved! (Test Acc: 99.37%)
-Epoch 12/15 | Train: 0.0669 (97.92%) | Test: 0.0203 (99.42%) | LR: 0.000196 | Time: 10.1s                                                                                                     
+Epoch 12/15 | Train: 0.0669 (97.92%) | Test: 0.0203 (99.42%) | LR: 0.000196 | Time: 10.2s                                                                                                     
   🏆 New best model saved! (Test Acc: 99.42%)
-Epoch 13/15 | Train: 0.0666 (97.96%) | Test: 0.0194 (99.41%) | LR: 0.000089 | Time: 10.2s                                                                                                     
+Epoch 13/15 | Train: 0.0666 (97.96%) | Test: 0.0194 (99.41%) | LR: 0.000089 | Time: 10.1s                                                                                                     
   ⏳ No improvement (1/8)
-Epoch 14/15 | Train: 0.0651 (98.01%) | Test: 0.0187 (99.41%) | LR: 0.000023 | Time: 10.1s                                                                                                     
+Epoch 14/15 | Train: 0.0651 (98.01%) | Test: 0.0187 (99.41%) | LR: 0.000023 | Time: 10.3s                                                                                                     
   ⏳ No improvement (2/8)
 Epoch 15/15 | Train: 0.0619 (98.07%) | Test: 0.0185 (99.46%) | LR: 0.000000 | Time: 10.1s                                                                                                     
   🏆 New best model saved! (Test Acc: 99.46%)
 
 ✅ Training completed!
-   Total time: 2.56 minutes
+   Total time: 2.59 minutes
    Best test accuracy: 99.46% (Epoch 15)
 
 🎉 Training completed successfully!
 📊 Final Results:
   Best Test Accuracy: 99.46%
   Final Test Accuracy: 99.46%
+  Target Achievement: ✅
+  Total Epochs: 15
 ```
 
 ### 📊 Analysis
@@ -495,8 +606,8 @@ Epoch 15/15 | Train: 0.0619 (98.07%) | Test: 0.0185 (99.46%) | LR: 0.000000 | Ti
 
 | Model                     | Params    | Best Acc.  | Target Met? | Notes                                           |
 | ------------------------- | --------- | ---------- | ----------- | ----------------------------------------------- |
-| **MNISTNet4BlockWithBatchNormMaxPoolConvFinal (BatchNorm)**   | >8K       | 98.7%      | ❌           | Stable, under target                            |
-| **MNISTNet4BlockWithBatchNormMaxPoolDropoutConvFinal (Dropout)**     | >8K       | 98.95%     | ❌           | Better regularization, still short              |
+| **MNISTNet4BlockWithBatchNormMaxPoolConvFinal (BatchNorm)**   | >8K       | 99.45%      | ❌           | Stable, under target                            |
+| **MNISTNet4BlockWithBatchNormMaxPoolDropoutConvFinal (Dropout)**     | >8K       | 99.37%     | ❌           | Better regularization, still short              |
 | **MNISTNet4BlockWithBatchNormMaxPoolDropoutAveragePooling (Vanilla GAP)** | 7,954     | 99.26%     | ❌           | Parameter-efficient but overfit, not consistent |
 | **MNISTNet4BlockWithBatchNormMaxPoolDropoutAveragePooling (GAP + Aug)**   | **7,954** | **99.46%** | ✅           | Meets all targets, best generalization          |
 

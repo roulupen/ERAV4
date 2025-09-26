@@ -25,14 +25,6 @@ def get_mnist_data_loaders(batch_size=64, num_workers=4, data_dir='./data', pin_
         tuple: (train_loader, test_loader)
     """
     # Data augmentation for training
-    # train_transform = transforms.Compose([
-    #     #transforms.RandomRotation(5),
-    #     #transforms.RandomAffine(degrees=0, translate=(0.05, 0.05), scale=(0.9, 1.1), shear=10),
-    #     #transforms.ColorJitter(brightness=0.1, contrast=0.1),
-    #     transforms.RandomRotation((-7.0, 7.0), fill=(1,)),
-    #     transforms.ToTensor(),
-    #     transforms.Normalize((0.1307,), (0.3081,))  # MNIST statistics
-    # ])
     train_transform = transforms.Compose([
         transforms.RandomAffine(
             degrees=10,                    # rotate +/- 10°
