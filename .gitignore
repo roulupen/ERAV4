@@ -141,6 +141,13 @@ assignment6/test/
 assignment6/*.png
 assignment6/*.json
 
+assignment7/checkpoints/
+assignment7/data/
+assignment7/test/
+assignment7/*.png
+assignment7/*.json
+
+
 # uv specific
 .venv/
 uv.lock
