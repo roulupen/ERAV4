@@ -59,20 +59,18 @@ def get_cifar10_transforms(augment=True, mean=None, std=None):
     if augment:
         # Training transforms with albumentation
         train_transform = A.Compose([
-            A.HorizontalFlip(p=0.5),
-            A.ShiftScaleRotate(
-                shift_limit=0.1,
-                scale_limit=0.1,
-                rotate_limit=15,
-                p=0.5
-            ),
+            #A.PadIfNeeded(min_height=36, min_width=36, always_apply=True), 
+            #A.RandomCrop(32, 32),                        # standard CIFAR trick (pad+crop)
+            A.HorizontalFlip(p=0.5),                     # flip
+            A.ShiftScaleRotate(shift_limit=0.1, 
+                            scale_limit=0.1, 
+                            rotate_limit=15, p=0.5),
+            A.RandomBrightnessContrast(0.2, 0.2, p=0.5), # brightness/contrast
+            A.HueSaturationValue(20, 30, 20, p=0.5),     # color jitter
             A.CoarseDropout(
-                max_holes=1,
-                max_height=16,
-                max_width=16,
-                min_holes=1,
-                min_height=16,
-                min_width=16,
+                max_holes=2, min_holes=1,
+                max_height=8, max_width=8,
+                min_height=8, min_width=8,
                 fill_value=mean,
                 p=0.3
             ),
