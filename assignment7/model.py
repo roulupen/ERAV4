@@ -80,93 +80,93 @@ class CIFAR10Net(nn.Module):
         
         # Block 1: Multiple convolution layers (16, 32, 64 channels)
         self.block1 = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, padding=1),
+            nn.Conv2d(3, 16, kernel_size=3, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout),
+            nn.Conv2d(16, 32, kernel_size=3, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
             nn.Dropout2d(dropout),
             nn.Conv2d(32, 64, kernel_size=3, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
-            nn.Dropout2d(dropout),
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
             nn.Dropout2d(dropout)
         )
         
         # Transition 1: Reduce channels to 16
         self.transition1 = nn.Sequential(
-            nn.Conv2d(128, 32, kernel_size=1),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(64, 16, kernel_size=1),
+            nn.BatchNorm2d(16),
             nn.ReLU(inplace=True)
         )
         
         # Block 2: Depthwise Separable Convolution (16, 32, 64 channels)
         self.block2 = nn.Sequential(
+            DepthwiseSeparableConv2d(16, 16, kernel_size=3, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout),
+            DepthwiseSeparableConv2d(16, 32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout),
             DepthwiseSeparableConv2d(32, 64, kernel_size=3, padding=1),
             nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
-            nn.Dropout2d(dropout),
-            DepthwiseSeparableConv2d(64, 128, kernel_size=3, padding=1),
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.Dropout2d(dropout),
-            DepthwiseSeparableConv2d(128, 256, kernel_size=3, padding=1),
-            nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
             nn.Dropout2d(dropout)
         )
         
         # Transition 2: Reduce channels to 16
         self.transition2 = nn.Sequential(
-            nn.Conv2d(256, 32, kernel_size=1),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(64, 16, kernel_size=1),
+            nn.BatchNorm2d(16),
             nn.ReLU(inplace=True)
         )
         
         # Block 3: Dilated Convolution (dilation=2) (16, 32, 64 channels)
         self.block3 = nn.Sequential(
-            DilatedConv2d(32, 32, kernel_size=3, padding=2, dilation=2),
+            DilatedConv2d(16, 16, kernel_size=3, padding=2, dilation=2),
+            nn.BatchNorm2d(16),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout),
+            DilatedConv2d(16, 32, kernel_size=3, padding=2, dilation=2),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
             nn.Dropout2d(dropout),
             DilatedConv2d(32, 64, kernel_size=3, padding=2, dilation=2),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
-            nn.Dropout2d(dropout),
-            DilatedConv2d(64, 128, kernel_size=3, padding=2, dilation=2),
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
             nn.Dropout2d(dropout)
         )
         
         # Transition 3: Reduce channels to 16
         self.transition3 = nn.Sequential(
-            nn.Conv2d(128, 32, kernel_size=1),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(64, 16, kernel_size=1),
+            nn.BatchNorm2d(16),
             nn.ReLU(inplace=True)
         )
         
         # Block 4: Dilated Convolution (dilation=4) (16, 32, 64 channels)
         self.block4 = nn.Sequential(
-            DilatedConv2d(32, 32, kernel_size=3, padding=4, dilation=4),
+            DilatedConv2d(16, 16, kernel_size=3, padding=4, dilation=4),
+            nn.BatchNorm2d(16),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout),
+            DilatedConv2d(16, 32, kernel_size=3, padding=4, dilation=4),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
             nn.Dropout2d(dropout),
             DilatedConv2d(32, 64, kernel_size=3, padding=4, dilation=4),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
-            nn.Dropout2d(dropout),
-            DilatedConv2d(64, 128, kernel_size=3, padding=4, dilation=4),
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
             nn.Dropout2d(dropout)
         )
         
         # Transition 4: Reduce channels to 16 and downsample
         self.transition4 = nn.Sequential(
-            nn.Conv2d(128, 32, kernel_size=1, stride=2),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(64, 16, kernel_size=1, stride=2),
+            nn.BatchNorm2d(16),
             nn.ReLU(inplace=True)
         )
         
@@ -174,7 +174,7 @@ class CIFAR10Net(nn.Module):
         self.gap = nn.AdaptiveAvgPool2d(1)
         
         # Final classification layer
-        self.fc = nn.Linear(32, num_classes)
+        self.fc = nn.Linear(16, num_classes)
         
     def forward(self, x):
         # Block 1: 32x32 -> 32x32 (16, 32, 64 channels)

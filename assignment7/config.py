@@ -45,6 +45,18 @@ class TrainingConfig:
     T_0: int = 10  # For cosine scheduler
     eta_min: float = 1e-6  # For cosine scheduler
     
+    # Cyclic learning rate scheduler parameters
+    base_lr: float = 0.0001  # Base learning rate for cyclic scheduler
+    max_lr: float = 0.01  # Maximum learning rate for cyclic scheduler
+    step_size_up: int = 4  # Number of steps to reach max_lr
+    step_size_down: int = 4  # Number of steps to return to base_lr
+    mode: str = 'triangular'  # Mode for cyclic scheduler
+    scale_fn: Optional[callable] = None  # Scale function for cyclic scheduler
+    scale_mode: str = 'cycle'  # Scale mode for cyclic scheduler
+    cycle_momentum: bool = True  # Whether to cycle momentum
+    base_momentum: float = 0.8  # Base momentum for cyclic scheduler
+    max_momentum: float = 0.9  # Maximum momentum for cyclic scheduler
+    
     # Output parameters
     checkpoint_dir: str = './checkpoints'
     save_plots: bool = True
@@ -231,6 +243,70 @@ Examples:
         help='Minimum learning rate (default: 1e-6)'
     )
     
+    # Cyclic learning rate scheduler arguments
+    parser.add_argument(
+        '--base_lr', 
+        type=float, 
+        default=0.0001,
+        help='Base learning rate for cyclic scheduler (default: 0.0001)'
+    )
+    parser.add_argument(
+        '--max_lr', 
+        type=float, 
+        default=0.01,
+        help='Maximum learning rate for cyclic scheduler (default: 0.01)'
+    )
+    parser.add_argument(
+        '--step_size_up', 
+        type=int, 
+        default=4,
+        help='Number of steps to reach max_lr (default: 4)'
+    )
+    parser.add_argument(
+        '--step_size_down', 
+        type=int, 
+        default=4,
+        help='Number of steps to return to base_lr (default: 4)'
+    )
+    parser.add_argument(
+        '--mode', 
+        type=str, 
+        default='triangular',
+        choices=['triangular', 'triangular2', 'exp_range'],
+        help='Mode for cyclic scheduler (default: triangular)'
+    )
+    parser.add_argument(
+        '--scale_mode', 
+        type=str, 
+        default='cycle',
+        choices=['cycle', 'iterations'],
+        help='Scale mode for cyclic scheduler (default: cycle)'
+    )
+    parser.add_argument(
+        '--cycle_momentum', 
+        action='store_true',
+        default=True,
+        help='Enable momentum cycling (default: True)'
+    )
+    parser.add_argument(
+        '--no_cycle_momentum', 
+        action='store_false',
+        dest='cycle_momentum',
+        help='Disable momentum cycling'
+    )
+    parser.add_argument(
+        '--base_momentum', 
+        type=float, 
+        default=0.8,
+        help='Base momentum for cyclic scheduler (default: 0.8)'
+    )
+    parser.add_argument(
+        '--max_momentum', 
+        type=float, 
+        default=0.9,
+        help='Maximum momentum for cyclic scheduler (default: 0.9)'
+    )
+    
     # Output parameters
     parser.add_argument(
         '--checkpoint_dir', 
@@ -378,6 +454,17 @@ def print_config(config: TrainingConfig):
     elif config.scheduler == 'cosine':
         print(f"  T_0: {config.T_0}")
         print(f"  Eta Min: {config.eta_min}")
+    elif config.scheduler == 'cyclic':
+        print(f"  Base LR: {config.base_lr}")
+        print(f"  Max LR: {config.max_lr}")
+        print(f"  Step Size Up: {config.step_size_up}")
+        print(f"  Step Size Down: {config.step_size_down}")
+        print(f"  Mode: {config.mode}")
+        print(f"  Scale Mode: {config.scale_mode}")
+        print(f"  Cycle Momentum: {'✅' if config.cycle_momentum else '❌'}")
+        if config.cycle_momentum:
+            print(f"  Base Momentum: {config.base_momentum}")
+            print(f"  Max Momentum: {config.max_momentum}")
     
     # Output parameters
     print("\n💾 Output:")

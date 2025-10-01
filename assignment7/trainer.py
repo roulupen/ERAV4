@@ -143,11 +143,6 @@ class Trainer:
         for batch_idx, (data, target) in enumerate(progress_bar):
             data, target = data.to(self.device, non_blocking=True), target.to(self.device, non_blocking=True)
             
-            # Debug: Verify data is on correct device (only for first batch)
-            if batch_idx == 0:
-                print(f"🔍 Debug - Data device: {data.device}, Target device: {target.device}")
-                print(f"🔍 Debug - Model device: {next(self.model.parameters()).device}")
-            
             self.optimizer.zero_grad()
             output = self.model(data)
             loss = self.criterion(output, target)
