@@ -145,7 +145,7 @@ def main():
         print(f"\n🏗️ Setting up {config.model_name} model...")
         model = create_cifar10_model(
             num_classes=config.num_classes, 
-            use_fc=config.use_fc
+            dropout=config.dropout
         )
         model = model.to(device)
         
@@ -164,11 +164,6 @@ def main():
         if total_params < 200000:
             print(f"  Parameter efficiency: {total_params/200000*100:.1f}% of limit")
         
-        # Calculate receptive field
-        if hasattr(model, 'calculate_receptive_field'):
-            rf = model.calculate_receptive_field()
-            print(f"  Receptive field: {rf}")
-            print(f"  RF > 44: {'✅' if rf > 44 else '❌'}")
         
         # Print model summary
         if config.verbose:
@@ -237,7 +232,6 @@ def main():
             'best_accuracy': max(training_history['test_accuracies']),
             'total_epochs': len(training_history['epochs']),
             'parameters': total_params,
-            'receptive_field': model.calculate_receptive_field() if hasattr(model, 'calculate_receptive_field') else 'Unknown',
             'target_achieved': target_achieved,
             'config': config.to_dict(),
             'training_history': training_history

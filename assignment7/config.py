@@ -18,7 +18,7 @@ class TrainingConfig:
     # Model parameters
     model_name: str = 'cifar10_net'
     num_classes: int = 10
-    use_fc: bool = True
+    dropout: float = 0.05
     
     # Data parameters
     batch_size: int = 32
@@ -39,7 +39,7 @@ class TrainingConfig:
     momentum: float = 0.9  # For SGD
     
     # Scheduler parameters
-    scheduler: str = 'cosine'  # 'step', 'cosine', 'plateau', 'cyclic'
+    scheduler: str = 'cyclic'  # 'step', 'cosine', 'plateau', 'cyclic'
     step_size: int = 10  # For step scheduler
     gamma: float = 0.1  # For step scheduler
     T_0: int = 10  # For cosine scheduler
@@ -107,16 +107,10 @@ Examples:
         help='Number of output classes (default: 10)'
     )
     parser.add_argument(
-        '--use_fc', 
-        action='store_true',
-        default=True,
-        help='Use FC layer after GAP (default: True)'
-    )
-    parser.add_argument(
-        '--no_fc', 
-        action='store_false',
-        dest='use_fc',
-        help='Disable FC layer after GAP'
+        '--dropout', 
+        type=float, 
+        default=0.05,
+        help='Dropout rate for all dropout layers (default: 0.05)'
     )
     
     # Data parameters
@@ -209,8 +203,8 @@ Examples:
         '--scheduler', 
         type=str, 
         choices=['step', 'cosine', 'plateau', 'cyclic'],
-        default='cosine',
-        help='Learning rate scheduler (default: cosine)'
+        default='cyclic',
+        help='Learning rate scheduler (default: cyclic)'
     )
     parser.add_argument(
         '--step_size', 

@@ -62,28 +62,35 @@ def get_device():
         return device
 
 
-def get_model_summary(model, input_size=(3, 32, 32)):
+def get_model_summary(model, input_size):
     """
-    Get a model summary showing parameter count and architecture.
-    
-    Args:
-        model: The neural network model
-        input_size: Input size for summary (default: CIFAR-10)
-        
-    Returns:
-        tuple: (total_params, trainable_params)
+    Prints a summary of the model using torchsummary, ensuring the input tensor
+    is on the same device as the model.
     """
-    model.to('cpu')
-    
+    TORCHSUMMARY_AVAILABLE = True
+    try:
+        import torchsummary
+    except ImportError:
+        TORCHSUMMARY_AVAILABLE = False
+
     if TORCHSUMMARY_AVAILABLE:
-        summary(model, input_size=input_size)
+        # Handle MPS device by temporarily moving model to CPU for summary
+        device_type = next(model.parameters()).device.type
+        original_device = next(model.parameters()).device
+        
+        if device_type == 'mps':
+            # Temporarily move model to CPU for summary
+            model_cpu = model.cpu()
+            summary(model_cpu, input_size=input_size, device='cpu')
+            # Move model back to original device
+            model.to(original_device)
+        else:
+            summary(model, input_size=input_size, device=device_type)
     else:
         # Fallback: just show parameter count
-        total_params = sum(p.numel() for p in model.parameters())
-        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-        print(f"Total parameters: {total_params:,}")
-        print(f"Trainable parameters: {trainable_params:,}")
-        return total_params, trainable_params
+        print("torchsummary not available. Install it for detailed summary.")
+        param_count = sum(p.numel() for p in model.parameters())
+        print(f"Total parameters: {param_count:,}")
 
 
 def save_checkpoint(model, optimizer, epoch, loss, accuracy, filepath, scheduler=None, additional_info=None):

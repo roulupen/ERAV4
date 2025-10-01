@@ -57,13 +57,14 @@ class DilatedConv2d(nn.Module):
 
 class CIFAR10Net(nn.Module):
     """
-    CIFAR-10 Network with C1C2C3C40 architecture.
+    CIFAR-10 Network with 4-Block Architecture using Depthwise and Dilated Convolutions.
     
     Architecture:
-    - C1: 3x3 Conv + BatchNorm + ReLU
-    - C2: 3x3 Depthwise Separable Conv + BatchNorm + ReLU  
-    - C3: 3x3 Dilated Conv (dilation=2) + BatchNorm + ReLU
-    - C40: 3x3 Conv with stride=2 + BatchNorm + ReLU
+    - Block 1: 3x3 Conv + BatchNorm + ReLU + Dropout
+    - Block 2: 3x3 Depthwise Separable Conv + BatchNorm + ReLU + Dropout
+    - Block 3: 3x3 Dilated Conv (dilation=2) + BatchNorm + ReLU + Dropout
+    - Block 4: 3x3 Dilated Conv (dilation=4) + BatchNorm + ReLU + Dropout
+    - Transition: 1x1 Conv with stride=2 for downsampling
     - GAP: Global Average Pooling
     - FC: Fully Connected layer (optional)
     
@@ -71,108 +72,144 @@ class CIFAR10Net(nn.Module):
     Receptive Field: > 44
     """
     
-    def __init__(self, num_classes=10, use_fc=True):
+    def __init__(self, num_classes=10, dropout=0.05):
         super(CIFAR10Net, self).__init__()
         
         self.num_classes = num_classes
-        self.use_fc = use_fc
+        self.dropout_rate = dropout
         
-        # C1: Initial convolution - very small channels
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm2d(16)
+        # Block 1: Multiple convolution layers (16, 32, 64 channels)
+        self.block1 = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout),
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout),
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout)
+        )
         
-        # C2: Depthwise Separable Convolution - small channels
-        self.conv2 = DepthwiseSeparableConv2d(16, 32, kernel_size=3, padding=1)
-        self.bn2 = nn.BatchNorm2d(32)
+        # Transition 1: Reduce channels to 16
+        self.transition1 = nn.Sequential(
+            nn.Conv2d(128, 32, kernel_size=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True)
+        )
         
-        # C3: Dilated Convolution (dilation=8 for increased RF) - small channels
-        self.conv3 = DilatedConv2d(32, 64, kernel_size=3, padding=8, dilation=8)
-        self.bn3 = nn.BatchNorm2d(64)
+        # Block 2: Depthwise Separable Convolution (16, 32, 64 channels)
+        self.block2 = nn.Sequential(
+            DepthwiseSeparableConv2d(32, 64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout),
+            DepthwiseSeparableConv2d(64, 128, kernel_size=3, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout),
+            DepthwiseSeparableConv2d(128, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout)
+        )
         
-        # Additional dilated layer for more RF
-        self.conv3b = DilatedConv2d(64, 64, kernel_size=3, padding=16, dilation=16)
-        self.bn3b = nn.BatchNorm2d(64)
+        # Transition 2: Reduce channels to 16
+        self.transition2 = nn.Sequential(
+            nn.Conv2d(256, 32, kernel_size=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True)
+        )
         
-        # C40: Final convolution with stride=2 (replaces MaxPooling) - small channels
-        self.conv4 = nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1)
-        self.bn4 = nn.BatchNorm2d(128)
+        # Block 3: Dilated Convolution (dilation=2) (16, 32, 64 channels)
+        self.block3 = nn.Sequential(
+            DilatedConv2d(32, 32, kernel_size=3, padding=2, dilation=2),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout),
+            DilatedConv2d(32, 64, kernel_size=3, padding=2, dilation=2),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout),
+            DilatedConv2d(64, 128, kernel_size=3, padding=2, dilation=2),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout)
+        )
+        
+        # Transition 3: Reduce channels to 16
+        self.transition3 = nn.Sequential(
+            nn.Conv2d(128, 32, kernel_size=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True)
+        )
+        
+        # Block 4: Dilated Convolution (dilation=4) (16, 32, 64 channels)
+        self.block4 = nn.Sequential(
+            DilatedConv2d(32, 32, kernel_size=3, padding=4, dilation=4),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout),
+            DilatedConv2d(32, 64, kernel_size=3, padding=4, dilation=4),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout),
+            DilatedConv2d(64, 128, kernel_size=3, padding=4, dilation=4),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout)
+        )
+        
+        # Transition 4: Reduce channels to 16 and downsample
+        self.transition4 = nn.Sequential(
+            nn.Conv2d(128, 32, kernel_size=1, stride=2),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True)
+        )
         
         # Global Average Pooling
         self.gap = nn.AdaptiveAvgPool2d(1)
         
-        # Optional FC layer
-        if use_fc:
-            self.fc = nn.Linear(128, num_classes)
-        else:
-            # If no FC, we need to adjust the final conv to output num_classes
-            self.conv_final = nn.Conv2d(128, num_classes, kernel_size=1)
-        
-        # Dropout for regularization
-        self.dropout = nn.Dropout(0.1)
+        # Final classification layer
+        self.fc = nn.Linear(32, num_classes)
         
     def forward(self, x):
-        # C1: 32x32 -> 32x32
-        x = F.relu(self.bn1(self.conv1(x)))
+        # Block 1: 32x32 -> 32x32 (16, 32, 64 channels)
+        x = self.block1(x)
         
-        # C2: 32x32 -> 32x32 (Depthwise Separable)
-        x = F.relu(self.bn2(self.conv2(x)))
+        # Transition 1: 32x32 -> 32x32 (64 -> 16 channels)
+        x = self.transition1(x)
         
-        # C3: 32x32 -> 32x32 (Dilated)
-        x = F.relu(self.bn3(self.conv3(x)))
+        # Block 2: 32x32 -> 32x32 (Depthwise Separable, 16, 32, 64 channels)
+        x = self.block2(x)
         
-        # C3b: 32x32 -> 32x32 (Additional Dilated)
-        x = F.relu(self.bn3b(self.conv3b(x)))
+        # Transition 2: 32x32 -> 32x32 (64 -> 16 channels)
+        x = self.transition2(x)
         
-        # C40: 32x32 -> 16x16 (Stride=2)
-        x = F.relu(self.bn4(self.conv4(x)))
+        # Block 3: 32x32 -> 32x32 (Dilated, dilation=2, 16, 32, 64 channels)
+        x = self.block3(x)
+        
+        # Transition 3: 32x32 -> 32x32 (64 -> 16 channels)
+        x = self.transition3(x)
+        
+        # Block 4: 32x32 -> 32x32 (Dilated, dilation=4, 16, 32, 64 channels)
+        x = self.block4(x)
+        
+        # Transition 4: 32x32 -> 16x16 (Downsampling, 64 -> 16 channels)
+        x = self.transition4(x)
         
         # Global Average Pooling: 16x16 -> 1x1
         x = self.gap(x)
         
-        if self.use_fc:
-            # Flatten and FC
-            x = x.view(x.size(0), -1)
-            x = self.dropout(x)
-            x = self.fc(x)
-        else:
-            # Use 1x1 conv instead of FC
-            x = self.conv_final(x)
-            x = x.view(x.size(0), -1)
+        # Flatten and FC (no dropout on last layer)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
         
         return F.log_softmax(x, dim=1)
     
-    def calculate_receptive_field(self):
-        """
-        Calculate the receptive field of the network.
-        Returns the receptive field size.
-        """
-        # RF calculation for each layer
-        rf = 1
-        stride = 1
-        
-        # C1: 3x3 conv, padding=1
-        rf = rf + (3-1) * stride
-        stride = stride * 1  # stride=1
-        
-        # C2: 3x3 depthwise separable, padding=1  
-        rf = rf + (3-1) * stride
-        stride = stride * 1  # stride=1
-        
-        # C3: 3x3 dilated conv, dilation=8, padding=8
-        effective_kernel = 3 + (3-1) * (8-1)  # 17x17 effective kernel
-        rf = rf + (effective_kernel-1) * stride
-        stride = stride * 1  # stride=1
-        
-        # C3b: 3x3 dilated conv, dilation=16, padding=16
-        effective_kernel = 3 + (3-1) * (16-1)  # 33x33 effective kernel
-        rf = rf + (effective_kernel-1) * stride
-        stride = stride * 1  # stride=1
-        
-        # C40: 3x3 conv, stride=2, padding=1
-        rf = rf + (3-1) * stride
-        stride = stride * 2  # stride=2
-        
-        return rf
     
     def get_parameter_count(self):
         """
@@ -181,18 +218,18 @@ class CIFAR10Net(nn.Module):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
 
-def create_cifar10_model(num_classes=10, use_fc=True):
+def create_cifar10_model(num_classes=10, dropout=0.05):
     """
     Create a CIFAR-10 model instance.
     
     Args:
         num_classes: Number of output classes (default: 10)
-        use_fc: Whether to use FC layer after GAP (default: True)
+        dropout: Dropout rate for all dropout layers (default: 0.05)
         
     Returns:
         CIFAR10Net: Model instance
     """
-    return CIFAR10Net(num_classes=num_classes, use_fc=use_fc)
+    return CIFAR10Net(num_classes=num_classes, dropout=dropout)
 
 
 def test_model_architecture():
@@ -211,16 +248,19 @@ def test_model_architecture():
     print(f"Input shape: {x.shape}")
     print(f"Output shape: {output.shape}")
     print(f"Parameter count: {model.get_parameter_count():,}")
-    print(f"Receptive field: {model.calculate_receptive_field()}")
     print(f"Under 200k params: {'✅' if model.get_parameter_count() < 200000 else '❌'}")
-    print(f"RF > 44: {'✅' if model.calculate_receptive_field() > 44 else '❌'}")
+    print(f"Uses GAP: {'✅' if hasattr(model, 'gap') else '❌'}")
+    print(f"Uses Depthwise Separable: {'✅' if hasattr(model, 'block2') and 'DepthwiseSeparableConv2d' in str(type(model.block2[0])) else '❌'}")
+    print(f"Uses Dilated Conv: {'✅' if hasattr(model, 'block3') and 'DilatedConv2d' in str(type(model.block3[0])) else '❌'}")
+    print(f"Has 4 Blocks: {'✅' if hasattr(model, 'block1') and hasattr(model, 'block2') and hasattr(model, 'block3') and hasattr(model, 'block4') else '❌'}")
+    print(f"Has Transition Blocks: {'✅' if hasattr(model, 'transition1') and hasattr(model, 'transition2') and hasattr(model, 'transition3') and hasattr(model, 'transition4') else '❌'}")
     
-    # Test without FC layer
-    model_no_fc = create_cifar10_model(use_fc=False)
-    output_no_fc = model_no_fc(x)
-    print(f"\nWithout FC layer:")
-    print(f"Parameter count: {model_no_fc.get_parameter_count():,}")
-    print(f"Output shape: {output_no_fc.shape}")
+    # Test with different dropout rates
+    model_dropout = create_cifar10_model(dropout=0.1)
+    output_dropout = model_dropout(x)
+    print(f"\nWith dropout=0.1:")
+    print(f"Parameter count: {model_dropout.get_parameter_count():,}")
+    print(f"Output shape: {output_dropout.shape}")
     
     return model
 
