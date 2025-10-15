@@ -135,7 +135,7 @@ def get_imagenet_transforms(augment=True, mean=None, std=None):
     if augment:
         # Training transforms with strong augmentation
         train_transform = A.Compose([
-            A.RandomResizedCrop(height=224, width=224, scale=(0.08, 1.0), p=1.0),
+            A.RandomResizedCrop(size=(224, 224), scale=(0.08, 1.0), p=1.0),
             A.HorizontalFlip(p=0.5),
             A.OneOf([
                 A.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1, p=1.0),
