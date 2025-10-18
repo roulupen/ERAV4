@@ -12,8 +12,9 @@ from albumentations.pytorch import ToTensorV2
 import numpy as np
 from PIL import Image
 import os
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 
 class ImageNetDataset(Dataset):
@@ -340,6 +341,91 @@ def get_imagenet_data_loaders(
     return train_loader, val_loader
 
 
+def get_imagenet_data_loaders_limited(
+    data_dir,
+    train_samples=200000,
+    batch_size=128,
+    num_workers=4,
+    augment=True,
+    pin_memory=None
+) -> Tuple[DataLoader, DataLoader]:
+    """
+    Get ImageNet data loaders with LIMITED training samples but FULL validation set.
+    Useful for pipeline testing and debugging before full training.
+    
+    Args:
+        data_dir: Root directory of ImageNet dataset
+        train_samples: Number of training samples to use (default: 200,000)
+        batch_size: Batch size for data loaders (default: 128)
+        num_workers: Number of worker processes (default: 4)
+        augment: Whether to apply augmentation (default: True)
+        pin_memory: Whether to pin memory for faster GPU transfer (auto-detected if None)
+        
+    Returns:
+        tuple: (train_loader, val_loader)
+    """
+    # Auto-detect pin_memory based on device
+    if pin_memory is None:
+        if torch.cuda.is_available():
+            pin_memory = True
+        else:
+            pin_memory = False
+    
+    print(f"\n📥 Loading ImageNet dataset (LIMITED TRAINING MODE)")
+    print(f"  Data directory: {data_dir}")
+    print(f"  Training samples: {train_samples:,} (limited for testing)")
+    print(f"  Validation samples: ALL (~50,000)")
+    print(f"  Batch size: {batch_size}")
+    print(f"  Workers: {num_workers}")
+    print(f"  Augmentation: {'✅' if augment else '❌'}")
+    print(f"  Pin memory: {'✅' if pin_memory else '❌'}")
+    
+    # Get transforms
+    train_transform, val_transform = get_imagenet_transforms(augment=augment)
+    
+    # Create datasets
+    train_dataset = ImageNetDataset(
+        root_dir=data_dir,
+        split='train',
+        transform=train_transform,
+        limit_samples=train_samples  # LIMIT training samples
+    )
+    
+    val_dataset = ImageNetDataset(
+        root_dir=data_dir,
+        split='val',
+        transform=val_transform,
+        limit_samples=None  # Use ALL validation samples
+    )
+    
+    # Create data loaders
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        drop_last=True
+    )
+    
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        drop_last=False
+    )
+    
+    print(f"\n✅ Data loaders ready!")
+    print(f"  Training batches: {len(train_loader)}")
+    print(f"  Validation batches: {len(val_loader)}")
+    print(f"  Train samples: ~{len(train_dataset):,}")
+    print(f"  Val samples: ~{len(val_dataset):,}")
+    
+    return train_loader, val_loader
+
+
 def get_dataset_info():
     """
     Get ImageNet dataset information.
@@ -356,6 +442,93 @@ def get_dataset_info():
         'train_samples': 1281167,
         'val_samples': 50000
     }
+
+
+def visualize_samples(
+    data_loader,
+    num_samples=10,
+    dataset_name='Dataset',
+    class_names=None,
+    figsize=(20, 8)
+):
+    """
+    Visualize sample images from a data loader.
+    
+    Args:
+        data_loader: PyTorch DataLoader to visualize samples from
+        num_samples: Number of samples to display (default: 10)
+        dataset_name: Name of the dataset for title (default: 'Dataset')
+        class_names: Optional list of class names for labels
+        figsize: Figure size (default: (20, 8))
+    """
+    # Get ImageNet normalization values for denormalization
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    
+    # Get a batch of images
+    data_iter = iter(data_loader)
+    images, labels = next(data_iter)
+    
+    # Limit to num_samples
+    num_samples = min(num_samples, len(images))
+    images = images[:num_samples]
+    labels = labels[:num_samples]
+    
+    # Create figure
+    fig, axes = plt.subplots(2, 5, figsize=figsize)
+    axes = axes.ravel()
+    
+    for idx in range(num_samples):
+        # Get image and denormalize
+        img = images[idx].cpu().numpy().transpose(1, 2, 0)
+        img = std * img + mean  # Denormalize
+        img = np.clip(img, 0, 1)  # Clip to [0, 1] range
+        
+        # Get label
+        label = labels[idx].item()
+        
+        # Display image
+        axes[idx].imshow(img)
+        axes[idx].axis('off')
+        
+        # Set title with class name or label
+        if class_names and label < len(class_names):
+            title = f"{class_names[label]}\n(ID: {label})"
+        else:
+            title = f"Class: {label}"
+        axes[idx].set_title(title, fontsize=10)
+    
+    # Overall title
+    fig.suptitle(f'Sample Images from {dataset_name}', fontsize=16, fontweight='bold')
+    plt.tight_layout()
+    plt.show()
+    
+    print(f"✅ Displayed {num_samples} sample images from {dataset_name}")
+
+
+def get_imagenet_class_names(data_dir):
+    """
+    Get ImageNet class names (synset IDs).
+    
+    Args:
+        data_dir: Root directory of ImageNet dataset
+        
+    Returns:
+        list: List of class names (synset IDs)
+    """
+    # Try Kaggle structure first
+    kaggle_base = Path(data_dir) / 'ILSVRC' / 'Data' / 'CLS-LOC'
+    
+    if kaggle_base.exists():
+        train_dir = kaggle_base / 'train'
+    else:
+        train_dir = Path(data_dir) / 'train'
+    
+    if train_dir.exists():
+        class_names = sorted([d.name for d in train_dir.iterdir() if d.is_dir()])
+        return class_names
+    else:
+        return None
 
 
 def test_data_loading(data_dir):
