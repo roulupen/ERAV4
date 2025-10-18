@@ -153,7 +153,7 @@ class Trainer:
         
         Args:
             epoch_num: Current epoch number
-            scheduler_type: Type of scheduler ('step', 'plateau', 'cyclic')
+            scheduler_type: Type of scheduler ('step', 'plateau', 'cyclic', 'onecycle')
             
         Returns:
             tuple: (average_loss, accuracy) for the epoch
@@ -180,8 +180,8 @@ class Trainer:
             loss.backward()
             self.optimizer.step()
             
-            # Update cyclic scheduler after each batch
-            if self.scheduler is not None and scheduler_type == 'cyclic':
+            # Update cyclic/onecycle scheduler after each batch
+            if self.scheduler is not None and scheduler_type in ['cyclic', 'onecycle']:
                 self.scheduler.step()
             
             total_loss += loss.item() * data.size(0)
@@ -243,7 +243,7 @@ class Trainer:
             early_stopping_patience: Patience for early stopping
             min_delta: Minimum improvement for early stopping
             checkpoint_dir: Directory to save checkpoints
-            scheduler_type: Type of scheduler ('step', 'plateau', 'cyclic')
+            scheduler_type: Type of scheduler ('step', 'plateau', 'cyclic', 'onecycle')
             save_best: Whether to save best model
             save_latest: Whether to save latest model
             verbose: Whether to print training progress
@@ -282,8 +282,8 @@ class Trainer:
             if self.scheduler is not None:
                 if scheduler_type == 'plateau':
                     self.scheduler.step(test_accuracy)
-                elif scheduler_type == 'cyclic':
-                    # Cyclic scheduler is updated per batch, not per epoch
+                elif scheduler_type in ['cyclic', 'onecycle']:
+                    # Cyclic/OneCycle scheduler is updated per batch, not per epoch
                     pass
                 else:
                     self.scheduler.step()
