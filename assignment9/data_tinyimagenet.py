@@ -196,7 +196,7 @@ def get_tinyimagenet_transforms(augment=True, mean=None, std=None, augment_stren
         if augment_strength == 'light':
             # Light augmentation - minimal transformations
             train_transform = A.Compose([
-                A.RandomResizedCrop(height=64, width=64, scale=(0.85, 1.0), ratio=(0.95, 1.05), p=1.0),
+                A.RandomResizedCrop(size=(64, 64), scale=(0.85, 1.0), ratio=(0.95, 1.05), p=1.0),
                 A.HorizontalFlip(p=0.5),
                 A.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05, p=0.5),
                 A.Normalize(mean=mean, std=std),
@@ -206,7 +206,7 @@ def get_tinyimagenet_transforms(augment=True, mean=None, std=None, augment_stren
         elif augment_strength == 'strong':
             # Strong augmentation - maximum diversity
             train_transform = A.Compose([
-                A.RandomResizedCrop(height=64, width=64, scale=(0.6, 1.0), ratio=(0.85, 1.15), p=1.0),
+                A.RandomResizedCrop(size=(64, 64), scale=(0.6, 1.0), ratio=(0.85, 1.15), p=1.0),
                 A.HorizontalFlip(p=0.5),
                 A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.15, rotate_limit=20, p=0.7),
                 
@@ -250,7 +250,7 @@ def get_tinyimagenet_transforms(augment=True, mean=None, std=None, augment_stren
             # Medium augmentation - balanced approach (RECOMMENDED)
             train_transform = A.Compose([
                 # Geometric augmentations
-                A.RandomResizedCrop(height=64, width=64, scale=(0.75, 1.0), ratio=(0.9, 1.1), p=1.0),
+                A.RandomResizedCrop(size=(64, 64), scale=(0.75, 1.0), ratio=(0.9, 1.1), p=1.0),
                 A.HorizontalFlip(p=0.5),
                 A.ShiftScaleRotate(
                     shift_limit=0.0625,  # 4 pixels at 64x64
