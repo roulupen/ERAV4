@@ -172,7 +172,7 @@ class TinyImageNetDataset(Dataset):
         return image, label
 
 
-def get_tinyimagenet_transforms(augment=True, mean=None, std=None):
+def get_tinyimagenet_transforms(augment=True, mean=None, std=None, augment_strength='medium'):
     """
     Get Tiny ImageNet transforms with albumentation augmentation.
     Optimized for 64x64 images.
@@ -181,6 +181,7 @@ def get_tinyimagenet_transforms(augment=True, mean=None, std=None):
         augment: Whether to apply augmentation (default: True)
         mean: Dataset mean for normalization (default: ImageNet mean)
         std: Dataset std for normalization (default: ImageNet std)
+        augment_strength: Augmentation strength - 'light', 'medium', or 'strong' (default: 'medium')
         
     Returns:
         tuple: (train_transform, val_transform)
@@ -192,23 +193,113 @@ def get_tinyimagenet_transforms(augment=True, mean=None, std=None):
         std = [0.229, 0.224, 0.225]
     
     if augment:
-        # Training transforms with augmentation (for 64x64 images)
-        train_transform = A.Compose([
-            A.RandomCrop(height=56, width=56, p=1.0),  # Random crop to 56x56
-            A.Resize(height=64, width=64, p=1.0),       # Resize back to 64x64
-            A.HorizontalFlip(p=0.5),
-            A.OneOf([
-                A.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1, p=1.0),
-                A.HueSaturationValue(hue_shift_limit=15, sat_shift_limit=25, val_shift_limit=15, p=1.0),
-            ], p=0.8),
-            A.OneOf([
-                A.GaussNoise(var_limit=(10.0, 30.0), p=1.0),
-                A.GaussianBlur(blur_limit=(3, 5), p=1.0),
-            ], p=0.2),
-            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=10, p=0.5),
-            A.Normalize(mean=mean, std=std),
-            ToTensorV2()
-        ])
+        if augment_strength == 'light':
+            # Light augmentation - minimal transformations
+            train_transform = A.Compose([
+                A.RandomResizedCrop(height=64, width=64, scale=(0.85, 1.0), ratio=(0.95, 1.05), p=1.0),
+                A.HorizontalFlip(p=0.5),
+                A.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05, p=0.5),
+                A.Normalize(mean=mean, std=std),
+                ToTensorV2()
+            ])
+        
+        elif augment_strength == 'strong':
+            # Strong augmentation - maximum diversity
+            train_transform = A.Compose([
+                A.RandomResizedCrop(height=64, width=64, scale=(0.6, 1.0), ratio=(0.85, 1.15), p=1.0),
+                A.HorizontalFlip(p=0.5),
+                A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.15, rotate_limit=20, p=0.7),
+                
+                # Strong color augmentation
+                A.OneOf([
+                    A.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.15, p=1.0),
+                    A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=1.0),
+                    A.RGBShift(r_shift_limit=20, g_shift_limit=20, b_shift_limit=20, p=1.0),
+                ], p=0.9),
+                
+                # Multiple noise/blur options
+                A.OneOf([
+                    A.GaussNoise(var_limit=(10.0, 30.0), p=1.0),
+                    A.GaussianBlur(blur_limit=(3, 7), p=1.0),
+                    A.MotionBlur(blur_limit=7, p=1.0),
+                    A.MedianBlur(blur_limit=5, p=1.0),
+                ], p=0.4),
+                
+                # Advanced augmentations
+                A.OneOf([
+                    A.CoarseDropout(max_holes=12, max_height=10, max_width=10, 
+                                   min_holes=1, min_height=4, min_width=4, fill_value=0, p=1.0),
+                    A.GridDistortion(num_steps=5, distort_limit=0.15, p=1.0),
+                    A.OpticalDistortion(distort_limit=0.15, shift_limit=0.15, p=1.0),
+                    A.ElasticTransform(alpha=1, sigma=10, p=1.0),
+                ], p=0.4),
+                
+                # Pixel-level
+                A.OneOf([
+                    A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=1.0),
+                    A.CLAHE(clip_limit=3.0, tile_grid_size=(4, 4), p=1.0),
+                    A.Sharpen(alpha=(0.2, 0.6), lightness=(0.5, 1.0), p=1.0),
+                    A.Emboss(alpha=(0.2, 0.5), strength=(0.2, 0.7), p=1.0),
+                ], p=0.5),
+                
+                A.Normalize(mean=mean, std=std),
+                ToTensorV2()
+            ])
+        
+        else:  # medium (default)
+            # Medium augmentation - balanced approach (RECOMMENDED)
+            train_transform = A.Compose([
+                # Geometric augmentations
+                A.RandomResizedCrop(height=64, width=64, scale=(0.75, 1.0), ratio=(0.9, 1.1), p=1.0),
+                A.HorizontalFlip(p=0.5),
+                A.ShiftScaleRotate(
+                    shift_limit=0.0625,  # 4 pixels at 64x64
+                    scale_limit=0.1, 
+                    rotate_limit=15, 
+                    border_mode=0,
+                    p=0.6
+                ),
+                
+                # Color augmentations
+                A.OneOf([
+                    A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=1.0),
+                    A.HueSaturationValue(hue_shift_limit=10, sat_shift_limit=20, val_shift_limit=15, p=1.0),
+                    A.RGBShift(r_shift_limit=15, g_shift_limit=15, b_shift_limit=15, p=1.0),
+                ], p=0.8),
+                
+                # Noise and blur
+                A.OneOf([
+                    A.GaussNoise(var_limit=(5.0, 20.0), p=1.0),
+                    A.GaussianBlur(blur_limit=(3, 5), p=1.0),
+                    A.MotionBlur(blur_limit=5, p=1.0),
+                ], p=0.3),
+                
+                # Advanced augmentations
+                A.OneOf([
+                    A.CoarseDropout(
+                        max_holes=8, 
+                        max_height=8, 
+                        max_width=8, 
+                        min_holes=1,
+                        min_height=4,
+                        min_width=4,
+                        fill_value=0,
+                        p=1.0
+                    ),
+                    A.GridDistortion(num_steps=5, distort_limit=0.1, p=1.0),
+                    A.OpticalDistortion(distort_limit=0.1, shift_limit=0.1, p=1.0),
+                ], p=0.3),
+                
+                # Pixel-level augmentations
+                A.OneOf([
+                    A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=1.0),
+                    A.CLAHE(clip_limit=2.0, tile_grid_size=(4, 4), p=1.0),
+                    A.Sharpen(alpha=(0.2, 0.5), lightness=(0.5, 1.0), p=1.0),
+                ], p=0.4),
+                
+                A.Normalize(mean=mean, std=std),
+                ToTensorV2()
+            ])
     else:
         # No augmentation for training
         train_transform = A.Compose([
@@ -232,6 +323,7 @@ def get_tinyimagenet_data_loaders(
     batch_size=128,
     num_workers=4,
     augment=True,
+    augment_strength='medium',
     pin_memory=None,
     limit_samples=None
 ) -> Tuple[DataLoader, DataLoader]:
@@ -243,6 +335,7 @@ def get_tinyimagenet_data_loaders(
         batch_size: Batch size for data loaders (default: 128)
         num_workers: Number of worker processes (default: 4)
         augment: Whether to apply augmentation (default: True)
+        augment_strength: Augmentation strength - 'light', 'medium', or 'strong' (default: 'medium')
         pin_memory: Whether to pin memory for faster GPU transfer (auto-detected if None)
         limit_samples: Limit number of samples for testing (default: None)
         
@@ -256,13 +349,16 @@ def get_tinyimagenet_data_loaders(
     print(f"\n📥 Loading Tiny ImageNet dataset from: {data_dir}")
     print(f"  Batch size: {batch_size}")
     print(f"  Workers: {num_workers}")
-    print(f"  Augmentation: {'✅' if augment else '❌'}")
+    print(f"  Augmentation: {'✅' if augment else '❌'} ({augment_strength})")
     print(f"  Pin memory: {'✅' if pin_memory else '❌'}")
     if limit_samples:
         print(f"  ⚠️  Limiting to {limit_samples} samples (test mode)")
     
     # Get transforms
-    train_transform, val_transform = get_tinyimagenet_transforms(augment=augment)
+    train_transform, val_transform = get_tinyimagenet_transforms(
+        augment=augment,
+        augment_strength=augment_strength
+    )
     
     # Create datasets
     print(f"\n📚 Loading Training Set...")
@@ -315,6 +411,7 @@ def get_tinyimagenet_data_loaders_limited(
     batch_size=128,
     num_workers=4,
     augment=True,
+    augment_strength='medium',
     pin_memory=None
 ) -> Tuple[DataLoader, DataLoader]:
     """
@@ -327,6 +424,7 @@ def get_tinyimagenet_data_loaders_limited(
         batch_size: Batch size for data loaders (default: 128)
         num_workers: Number of worker processes (default: 4)
         augment: Whether to apply augmentation (default: True)
+        augment_strength: Augmentation strength - 'light', 'medium', or 'strong' (default: 'medium')
         pin_memory: Whether to pin memory for faster GPU transfer (auto-detected if None)
         
     Returns:
@@ -342,11 +440,14 @@ def get_tinyimagenet_data_loaders_limited(
     print(f"  Validation samples: ALL (~10,000)")
     print(f"  Batch size: {batch_size}")
     print(f"  Workers: {num_workers}")
-    print(f"  Augmentation: {'✅' if augment else '❌'}")
+    print(f"  Augmentation: {'✅' if augment else '❌'} ({augment_strength})")
     print(f"  Pin memory: {'✅' if pin_memory else '❌'}")
     
     # Get transforms
-    train_transform, val_transform = get_tinyimagenet_transforms(augment=augment)
+    train_transform, val_transform = get_tinyimagenet_transforms(
+        augment=augment,
+        augment_strength=augment_strength
+    )
     
     # Create datasets
     print(f"\n📚 Loading Training Set...")
