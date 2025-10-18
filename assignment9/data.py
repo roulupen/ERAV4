@@ -35,13 +35,14 @@ class ImageNetDataset(Dataset):
         self.transform = transform
         
         # Detect directory structure (Kaggle vs local)
-        self.image_dir, self.class_to_idx = self._setup_dataset()
+        self.image_dir, self.class_to_idx, self.val_annotations = self._setup_dataset()
         self.samples = self._load_samples(limit_samples)
         
     def _setup_dataset(self):
         """Setup dataset paths based on directory structure."""
         # Try Kaggle structure first: /kaggle/input/imagenet-object-localization-challenge/ILSVRC/Data/CLS-LOC/
         kaggle_base = Path(self.root_dir) / 'ILSVRC' / 'Data' / 'CLS-LOC'
+        val_annotations = None
         
         if kaggle_base.exists():
             print(f"📁 Detected Kaggle ImageNet structure")
@@ -49,6 +50,8 @@ class ImageNetDataset(Dataset):
                 image_dir = kaggle_base / 'train'
             else:
                 image_dir = kaggle_base / 'val'
+                # Load validation annotations for Kaggle structure
+                val_annotations = self._load_kaggle_val_annotations()
         else:
             # Standard ImageNet structure
             print(f"📁 Using standard ImageNet structure")
@@ -59,34 +62,123 @@ class ImageNetDataset(Dataset):
             raise ValueError(f"Image directory not found: {image_dir}")
         
         # Create class to index mapping
-        class_folders = sorted([d.name for d in image_dir.iterdir() if d.is_dir()])
+        if self.split == 'val' and val_annotations is not None:
+            # For Kaggle validation, use the synsets from annotations
+            class_folders = sorted(set(val_annotations.values()))
+        else:
+            # For training or standard structure, use directory structure
+            class_folders = sorted([d.name for d in image_dir.iterdir() if d.is_dir()])
+        
         class_to_idx = {cls_name: idx for idx, cls_name in enumerate(class_folders)}
         
         print(f"  Found {len(class_to_idx)} classes")
         
-        return image_dir, class_to_idx
+        return image_dir, class_to_idx, val_annotations
+    
+    def _load_kaggle_val_annotations(self):
+        """
+        Load validation annotations for Kaggle ImageNet structure.
+        The validation images are in a flat directory and need to be mapped using annotations.
+        """
+        annotations_path = Path(self.root_dir) / 'LOC_val_solution.csv'
+        
+        if not annotations_path.exists():
+            print(f"⚠️  Validation annotations not found at: {annotations_path}")
+            print(f"  Trying alternative annotation locations...")
+            
+            # Try alternative paths
+            alt_paths = [
+                Path(self.root_dir) / 'ILSVRC' / 'Annotations' / 'CLS-LOC' / 'val',
+                Path(self.root_dir) / 'ILSVRC' / 'ImageSets' / 'CLS-LOC' / 'val.txt',
+            ]
+            
+            for alt_path in alt_paths:
+                if alt_path.exists():
+                    print(f"  Found alternative annotation path: {alt_path}")
+                    annotations_path = alt_path
+                    break
+        
+        # Parse the validation annotations
+        val_annotations = {}
+        
+        if annotations_path.exists() and annotations_path.suffix == '.csv':
+            # CSV format: ImageId,PredictionString
+            # PredictionString format: class_label x1 y1 x2 y2
+            import csv
+            with open(annotations_path, 'r') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    img_id = row['ImageId']
+                    # Extract class label (first part before coordinates)
+                    pred_string = row['PredictionString']
+                    class_label = pred_string.split()[0] if pred_string else None
+                    if class_label:
+                        val_annotations[img_id] = class_label
+        else:
+            # Fall back: try to infer from XML annotations or use directory structure
+            print(f"⚠️  No CSV annotations found. Checking for XML annotations...")
+            annotations_dir = Path(self.root_dir) / 'ILSVRC' / 'Annotations' / 'CLS-LOC' / 'val'
+            
+            if annotations_dir.exists():
+                import xml.etree.ElementTree as ET
+                for xml_file in annotations_dir.glob('*.xml'):
+                    try:
+                        tree = ET.parse(xml_file)
+                        root = tree.getroot()
+                        img_name = xml_file.stem
+                        
+                        # Extract class from first object
+                        obj = root.find('object')
+                        if obj is not None:
+                            class_name = obj.find('name').text
+                            val_annotations[img_name] = class_name
+                    except Exception as e:
+                        continue
+        
+        print(f"  Loaded {len(val_annotations)} validation annotations")
+        return val_annotations if val_annotations else None
     
     def _load_samples(self, limit_samples=None):
         """Load image paths and labels."""
         samples = []
         
-        for class_name, class_idx in self.class_to_idx.items():
-            class_dir = self.image_dir / class_name
-            
-            if not class_dir.exists():
-                continue
-            
-            # Get all images in class directory
-            image_files = list(class_dir.glob('*.JPEG')) + list(class_dir.glob('*.jpg'))
+        # Handle Kaggle validation structure (flat directory with annotations)
+        if self.split == 'val' and self.val_annotations is not None:
+            # Validation images are in a flat directory
+            # Get all images from the flat validation directory
+            image_files = list(self.image_dir.glob('*.JPEG')) + list(self.image_dir.glob('*.jpg'))
             
             for img_path in image_files:
-                samples.append((str(img_path), class_idx))
+                img_name = img_path.stem  # Get filename without extension
+                
+                # Get class label from annotations
+                if img_name in self.val_annotations:
+                    class_name = self.val_annotations[img_name]
+                    if class_name in self.class_to_idx:
+                        class_idx = self.class_to_idx[class_name]
+                        samples.append((str(img_path), class_idx))
+                        
+                        if limit_samples and len(samples) >= limit_samples:
+                            break
+        else:
+            # Training or standard structure: images organized in class directories
+            for class_name, class_idx in self.class_to_idx.items():
+                class_dir = self.image_dir / class_name
+                
+                if not class_dir.exists():
+                    continue
+                
+                # Get all images in class directory
+                image_files = list(class_dir.glob('*.JPEG')) + list(class_dir.glob('*.jpg'))
+                
+                for img_path in image_files:
+                    samples.append((str(img_path), class_idx))
+                    
+                    if limit_samples and len(samples) >= limit_samples:
+                        break
                 
                 if limit_samples and len(samples) >= limit_samples:
                     break
-            
-            if limit_samples and len(samples) >= limit_samples:
-                break
         
         print(f"  Loaded {len(samples)} samples")
         return samples
