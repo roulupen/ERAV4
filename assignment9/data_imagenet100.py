@@ -63,9 +63,10 @@ class ImageNet100Dataset(Dataset):
         
         # Try different possible directory structures
         possible_paths = [
+            self.root_dir / 'ImageNet100' / self.split,   # Kaggle: imagenet100/ImageNet100/train
             self.root_dir / self.split,  # Direct: imagenet100/train or imagenet100/val
-            self.root_dir / 'imagenet100/ImageNet100' / self.split,  # With ImageNet-100 subdirectory
-            self.root_dir / 'imagenet100/ImageNet100' / self.split,   # Lowercase variant
+            self.root_dir / 'ImageNet-100' / self.split,  # Alternative: imagenet100/ImageNet-100/train
+            self.root_dir / 'imagenet100' / self.split,   # Lowercase: imagenet100/imagenet100/train
             self.root_dir / f'train.X1' if self.split == 'train' else self.root_dir / f'val.X1',  # Kaggle format with .X1
             self.root_dir / f'train.X' if self.split == 'train' else self.root_dir / f'val.X',    # Kaggle format with .X
             self.root_dir / 'Training_Set' if self.split == 'train' else self.root_dir / 'Validation_Set',  # Alternative naming
