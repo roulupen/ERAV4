@@ -238,6 +238,17 @@ def get_imagenet_transforms(augment=True, mean=None, std=None):
                 A.GaussNoise(p=1.0),
                 A.GaussianBlur(p=1.0),
             ], p=0.3),
+            # Cutout augmentation for improved regularization
+            A.CoarseDropout(
+                max_holes=1,           # typically 1–2 holes work best
+                max_height=56,         # ~25% of 224
+                max_width=56,
+                min_holes=1,
+                min_height=32,
+                min_width=32,
+                fill_value=0,
+                p=0.6
+            ),
             A.Normalize(mean=mean, std=std),
             ToTensorV2()
         ])

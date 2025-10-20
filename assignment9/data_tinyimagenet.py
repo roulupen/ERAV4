@@ -208,7 +208,8 @@ def get_tinyimagenet_transforms(augment=True, mean=None, std=None, augment_stren
             train_transform = A.Compose([
                 A.RandomResizedCrop(size=(64, 64), scale=(0.6, 1.0), ratio=(0.85, 1.15), p=1.0),
                 A.HorizontalFlip(p=0.5),
-                A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.15, rotate_limit=20, p=0.7),
+                A.Affine(translate_percent={'x': (-0.1, 0.1), 'y': (-0.1, 0.1)}, 
+                        scale=(0.85, 1.15), rotate=(-20, 20), p=0.7),
                 
                 # Strong color augmentation
                 A.OneOf([
@@ -219,7 +220,7 @@ def get_tinyimagenet_transforms(augment=True, mean=None, std=None, augment_stren
                 
                 # Multiple noise/blur options
                 A.OneOf([
-                    A.GaussNoise(var_limit=(10.0, 30.0), p=1.0),
+                    A.GaussNoise(p=1.0),
                     A.GaussianBlur(blur_limit=(3, 7), p=1.0),
                     A.MotionBlur(blur_limit=7, p=1.0),
                     A.MedianBlur(blur_limit=5, p=1.0),
@@ -227,10 +228,18 @@ def get_tinyimagenet_transforms(augment=True, mean=None, std=None, augment_stren
                 
                 # Advanced augmentations
                 A.OneOf([
-                    A.CoarseDropout(max_holes=12, max_height=10, max_width=10, 
-                                   min_holes=1, min_height=4, min_width=4, fill_value=0, p=1.0),
+                    A.CoarseDropout(
+                        max_holes=1,           # one main cutout region per image
+                        max_height=16,         # about 25% of height
+                        max_width=16,          # about 25% of width
+                        min_holes=1,
+                        min_height=8,          # smaller lower bound for variability
+                        min_width=8,
+                        fill_value=0,          # black cutout
+                        p=0.8
+                    ),
                     A.GridDistortion(num_steps=5, distort_limit=0.15, p=1.0),
-                    A.OpticalDistortion(distort_limit=0.15, shift_limit=0.15, p=1.0),
+                    A.OpticalDistortion(distort_limit=0.15, p=1.0),
                     A.ElasticTransform(alpha=1, sigma=10, p=1.0),
                 ], p=0.4),
                 
@@ -252,11 +261,10 @@ def get_tinyimagenet_transforms(augment=True, mean=None, std=None, augment_stren
                 # Geometric augmentations
                 A.RandomResizedCrop(size=(64, 64), scale=(0.75, 1.0), ratio=(0.9, 1.1), p=1.0),
                 A.HorizontalFlip(p=0.5),
-                A.ShiftScaleRotate(
-                    shift_limit=0.0625,  # 4 pixels at 64x64
-                    scale_limit=0.1, 
-                    rotate_limit=15, 
-                    border_mode=0,
+                A.Affine(
+                    translate_percent={'x': (-0.0625, 0.0625), 'y': (-0.0625, 0.0625)},  # 4 pixels at 64x64
+                    scale=(0.9, 1.1),
+                    rotate=(-15, 15),
                     p=0.6
                 ),
                 
@@ -269,25 +277,16 @@ def get_tinyimagenet_transforms(augment=True, mean=None, std=None, augment_stren
                 
                 # Noise and blur
                 A.OneOf([
-                    A.GaussNoise(var_limit=(5.0, 20.0), p=1.0),
+                    A.GaussNoise(p=1.0),
                     A.GaussianBlur(blur_limit=(3, 5), p=1.0),
                     A.MotionBlur(blur_limit=5, p=1.0),
                 ], p=0.3),
                 
                 # Advanced augmentations
                 A.OneOf([
-                    A.CoarseDropout(
-                        max_holes=8, 
-                        max_height=8, 
-                        max_width=8, 
-                        min_holes=1,
-                        min_height=4,
-                        min_width=4,
-                        fill_value=0,
-                        p=1.0
-                    ),
+                    A.CoarseDropout(p=1.0),
                     A.GridDistortion(num_steps=5, distort_limit=0.1, p=1.0),
-                    A.OpticalDistortion(distort_limit=0.1, shift_limit=0.1, p=1.0),
+                    A.OpticalDistortion(distort_limit=0.1, p=1.0),
                 ], p=0.3),
                 
                 # Pixel-level augmentations
