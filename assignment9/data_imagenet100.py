@@ -66,19 +66,48 @@ class ImageNet100Dataset(Dataset):
             self.root_dir / self.split,  # Direct: imagenet100/train or imagenet100/val
             self.root_dir / 'ImageNet-100' / self.split,  # With ImageNet-100 subdirectory
             self.root_dir / 'imagenet100' / self.split,   # Lowercase variant
+            self.root_dir / f'train.X1' if self.split == 'train' else self.root_dir / f'val.X1',  # Kaggle format with .X1
+            self.root_dir / f'train.X' if self.split == 'train' else self.root_dir / f'val.X',    # Kaggle format with .X
+            self.root_dir / 'Training_Set' if self.split == 'train' else self.root_dir / 'Validation_Set',  # Alternative naming
         ]
         
         image_dir = None
+        
+        # First, show what actually exists in root_dir for debugging
+        if not self.root_dir.exists():
+            raise ValueError(f"Root directory does not exist: {self.root_dir}")
+        
+        print(f"🔍 Contents of {self.root_dir}:")
+        for item in sorted(self.root_dir.iterdir())[:20]:  # Show first 20 items
+            print(f"  {'📁' if item.is_dir() else '📄'} {item.name}")
+        
+        # Try to find the correct path
         for path in possible_paths:
             if path.exists():
                 image_dir = path
-                print(f"📁 Found ImageNet-100 {self.split} directory: {path}")
+                print(f"✅ Found ImageNet-100 {self.split} directory: {path}")
                 break
+        
+        # If still not found, try auto-detection by looking for directories with ~100 class subdirectories
+        if image_dir is None:
+            print(f"⚠️  Standard paths not found, trying auto-detection...")
+            for item in self.root_dir.iterdir():
+                if item.is_dir():
+                    subdirs = [d for d in item.iterdir() if d.is_dir()]
+                    # Check if this directory contains ~100 class folders (90-110 range to be flexible)
+                    if 90 <= len(subdirs) <= 110:
+                        # Check if the subdirectory names look like ImageNet class IDs (start with 'n')
+                        sample_names = [d.name for d in subdirs[:5]]
+                        if all(name.startswith('n') and len(name) >= 8 for name in sample_names):
+                            image_dir = item
+                            print(f"✅ Auto-detected {self.split} directory: {item} ({len(subdirs)} classes)")
+                            break
         
         if image_dir is None:
             raise ValueError(
                 f"Could not find {self.split} directory. Tried:\n" + 
-                "\n".join(f"  - {p}" for p in possible_paths)
+                "\n".join(f"  - {p}" for p in possible_paths) +
+                f"\n\nActual contents shown above. Please check the dataset structure."
             )
         
         # Get class folders (should be 100 classes)

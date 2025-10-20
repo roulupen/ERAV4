@@ -146,6 +146,7 @@ data/
 test/
 *.json
 sample_images/
+tiny-imagenet-200/
 
 
 # uv specific
